@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Anvil">
+<meta name="theme-color" content="#0B0B0E">
+<title>Anvil</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#0B0B0E;--bg2:#131316;--bg3:#1A1A1F;--bg4:#222228;
+--accent:#E8672A;--accent2:#FF8F4C;--abg:rgba(232,103,42,0.08);--abr:rgba(232,103,42,0.2);
+--blue:#508CFF;--green:#3ECF71;--red:#E85454;--purple:#A87BFF;
+--t1:#F0EDE8;--t2:#9A969E;--t3:#5A5660;
+--border:rgba(255,255,255,0.06);--r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);height:100dvh;overflow:hidden;position:fixed;width:100%;}
+code,.mono{font-family:'JetBrains Mono',monospace;}
+::-webkit-scrollbar{width:0;}
+
+/* === SCREENS === */
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;background:var(--bg);padding-top:env(safe-area-inset-top,44px);}
+.screen.active{display:flex;}
+
+/* === SETUP SCREEN === */
+#setup{justify-content:center;align-items:center;padding:20px 28px;gap:12px;}
+.setup-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#C44E18);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 12px 40px rgba(232,103,42,0.25);font-size:36px;}
+.setup-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;}
+.setup-sub{font-size:14px;color:var(--t2);text-align:center;max-width:300px;line-height:1.5;margin-bottom:20px;}
+.setup-input{width:100%;max-width:340px;background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:14px;font-family:'JetBrains Mono',monospace;color:var(--t1);outline:none;transition:border 0.2s;}
+.setup-input:focus{border-color:var(--accent);}
+.setup-input::placeholder{color:var(--t3);}
+.setup-status{font-size:12px;color:var(--t3);min-height:20px;transition:all 0.3s;}
+.setup-status.ok{color:var(--green);}
+.setup-status.err{color:var(--red);}
+.btn{background:var(--accent);color:white;border:none;padding:15px 28px;border-radius:var(--r);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;max-width:340px;transition:all 0.15s;margin-top:8px;}
+.btn:active{transform:scale(0.97);opacity:0.9;}
+.btn:disabled{opacity:0.4;}
+.btn-ghost{background:none;color:var(--t3);font-size:13px;padding:10px;margin-top:0;}
+.setup-note{font-size:11px;color:var(--t3);text-align:center;max-width:300px;line-height:1.5;margin-top:16px;}
+.setup-note a{color:var(--accent);text-decoration:none;}
+
+/* === NAV === */
+.nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding:6px 0;padding-bottom:max(10px,env(safe-area-inset-bottom));}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;border:none;background:none;cursor:pointer;font-family:inherit;}
+.nav button svg{width:22px;height:22px;fill:var(--t3);}
+.nav button span{font-size:10px;color:var(--t3);}
+.nav button.on svg{fill:var(--accent);}
+.nav button.on span{color:var(--accent);}
+
+/* === CHAT === */
+.chat-head{display:flex;align-items:center;padding:12px 14px;gap:10px;background:var(--bg2);border-bottom:1px solid var(--border);min-height:54px;}
+.chat-head .title{flex:1;}
+.chat-head .title h3{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.chat-head .title p{font-size:11px;color:var(--t3);}
+.chat-head .badge{font-size:9px;background:var(--abg);color:var(--accent);padding:3px 7px;border-radius:12px;font-weight:600;border:1px solid var(--abr);}
+.chat-head button{width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.chat-head button:active{background:var(--bg3);}
+.chat-head svg{width:18px;height:18px;fill:var(--t2);}
+
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;}
+.msg{max-width:88%;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg.sys{align-self:center;font-size:11px;color:var(--t3);background:var(--bg3);padding:4px 12px;border-radius:16px;}
+.msg.user{align-self:flex-end;background:var(--accent);color:white;padding:10px 14px;border-radius:var(--r) var(--r) 4px var(--r);font-size:14.5px;line-height:1.5;white-space:pre-wrap;}
+.msg.ai{align-self:flex-start;max-width:92%;}
+.ai-bubble{background:var(--bg3);border:1px solid var(--border);padding:11px 14px;border-radius:4px var(--r) var(--r) var(--r);font-size:14px;line-height:1.65;color:var(--t1);white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word;}
+.ai-bubble strong{font-weight:600;}
+.ai-bubble code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg);padding:1px 5px;border-radius:4px;}
+.ai-bubble pre{background:var(--bg);padding:10px 12px;border-radius:8px;overflow-x:auto;margin:8px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;white-space:pre;color:var(--t2);}
+.learn-card{border-left:3px solid var(--accent);padding:10px 13px;background:var(--abg);border-radius:0 10px 10px 0;font-size:13px;line-height:1.6;color:var(--t2);margin-top:8px;}
+.learn-card b{color:var(--accent);font-size:12px;}
+.typing-dots{display:flex;gap:4px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:4px var(--r) var(--r) var(--r);align-self:flex-start;}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--t3);animation:bounce 1.4s infinite;}
+.typing-dots span:nth-child(2){animation-delay:0.2s;}
+.typing-dots span:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
+
+.input-bar{padding:8px 10px;padding-bottom:8px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:flex-end;gap:6px;}
+.input-bar button{width:36px;height:36px;border-radius:50%;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.input-bar button svg{width:19px;height:19px;fill:var(--t3);}
+.input-bar button.recording svg{fill:var(--red);}
+.input-bar textarea{flex:1;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:9px 15px;font-size:15px;font-family:inherit;color:var(--t1);outline:none;resize:none;min-height:40px;max-height:140px;line-height:1.4;}
+.input-bar textarea:focus{border-color:var(--accent);}
+.input-bar textarea::placeholder{color:var(--t3);}
+.input-bar .send{background:var(--accent);margin-bottom:2px;}
+.input-bar .send svg{fill:white;width:17px;height:17px;}
+.input-bar .send:active{transform:scale(0.9);}
+.token-line{font-size:10px;color:var(--t3);text-align:center;padding:3px;font-family:'JetBrains Mono',monospace;background:var(--bg2);}
+
+/* === FILES === */
+.files-head{padding:14px 20px 8px;display:flex;justify-content:space-between;align-items:center;}
+.files-head h2{font-size:24px;font-weight:700;}
+.files-head button{padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;}
+.files-list{flex:1;overflow-y:auto;padding:8px 20px;-webkit-overflow-scrolling:touch;}
+.fitem{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.fitem:active{opacity:0.7;}
+.fitem .fi{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.fitem .fn{flex:1;font-size:14px;font-weight:500;}
+.fitem .fn.accent{color:var(--accent);}
+.fitem .fm{font-size:11px;color:var(--t3);}
+
+/* === EDITOR === */
+.editor-head{display:flex;align-items:center;padding:12px 14px;gap:10px;background:var(--bg2);border-bottom:1px solid var(--border);min-height:54px;}
+.editor-head button{width:34px;height:34px;border-radius:50%;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.editor-head button:active{background:var(--bg3);}
+.editor-head svg{width:18px;height:18px;fill:var(--accent);}
+.editor-head h3{flex:1;font-size:15px;font-weight:600;}
+.editor-head .save-btn{padding:6px 14px;background:var(--accent);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
+.editor-body{flex:1;overflow:hidden;}
+.editor-body textarea{width:100%;height:100%;background:var(--bg);border:none;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:var(--t1);outline:none;resize:none;-webkit-overflow-scrolling:touch;}
+
+/* === SETTINGS === */
+.settings-list{flex:1;overflow-y:auto;padding:12px 20px;-webkit-overflow-scrolling:touch;}
+.sgroup{margin-bottom:20px;}
+.sgroup-title{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--t3);font-weight:600;margin-bottom:6px;}
+.sitem{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.sitem-l{display:flex;align-items:center;gap:10px;}
+.sitem-l .si{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.sitem-l h4{font-size:14px;font-weight:500;}
+.sitem-l p{font-size:11px;color:var(--t3);}
+.sval{font-size:13px;color:var(--t2);}
+.toggle{width:44px;height:26px;border-radius:13px;background:var(--bg4);border:none;cursor:pointer;position:relative;transition:background 0.2s;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:white;top:2px;left:2px;transition:transform 0.2s;}
+.toggle.on::after{transform:translateX(18px);}
+select.model-sel{background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--t1);font-size:13px;font-family:inherit;outline:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.attach-thumb{position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.attach-thumb img{width:100%;height:100%;object-fit:cover;}
+.attach-thumb .remove{position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--red);color:white;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.attach-file{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg4);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--t2);position:relative;}
+.attach-file .remove{margin-left:6px;color:var(--red);cursor:pointer;font-weight:bold;}
+.msg-img{max-width:200px;border-radius:8px;margin-top:6px;}
+.activity-step{font-size:11px;color:var(--t3);padding:2px 0;}
+</style>
+</head>
+<body>
+
+<!-- ===== SETUP ===== -->
+<div class="screen active" id="setup">
+  <div class="setup-icon">🔨</div>
+  <h1 class="setup-title">Anvil</h1>
+  <p class="setup-sub">Builds what you need.<br>Teaches what you want.</p>
+  <input class="setup-input" type="password" placeholder="sk-ant-api03-..." id="keyInput" autocomplete="off">
+  <div class="setup-status" id="keyStatus">&nbsp;</div>
+  <button class="btn" id="connectBtn" onclick="connectKey()">Connect to Claude</button>
+  <button class="btn btn-ghost" onclick="skipConnect()">Skip test — I trust my key</button>
+  <p class="setup-note">Your key is stored locally on this device only.<br>Data is sent to <a href="https://www.anthropic.com/privacy" target="_blank">Anthropic's API</a> using your key.</p>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="screen" id="app">
+  <!-- Chat view -->
+  <div id="chatView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="chat-head">
+      <div class="title">
+        <h3>Anvil <span class="badge" id="learnBadge">🧠 Learning</span></h3>
+        <p id="chatSubtitle">New conversation</p>
+      </div>
+      <button onclick="newChat()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+      <button onclick="showScreen('filesView')"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></button>
+      <button onclick="showScreen('settingsView')"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="token-line" id="tokenLine">Ready</div>
+    <!-- Attachment preview -->
+    <div id="attachPreview" style="display:none;padding:8px 12px;background:var(--bg2);border-top:1px solid var(--border);display:none;flex-wrap:wrap;gap:8px;"></div>
+    <!-- Activity bar -->
+    <div id="activityBar" style="display:none;padding:6px 14px;background:var(--bg2);border-top:1px solid var(--border);font-size:12px;color:var(--accent);display:none;align-items:center;gap:8px;">
+      <div style="width:12px;height:12px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <span id="activityText">Working...</span>
+    </div>
+    <div class="input-bar">
+      <button onclick="document.getElementById('imageAttach').click()" title="Attach image"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" fill="var(--t3)"/></svg></button>
+      <button onclick="document.getElementById('fileAttach').click()" title="Attach file"><svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" fill="var(--t3)"/></svg></button>
+      <button id="micBtn" onclick="toggleVoice()"><svg viewBox="0 0 24 24"><path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.42 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+      <textarea id="chatInput" placeholder="Build something, ask anything..." rows="1" oninput="autoGrow(this)" onkeydown="chatKey(event)"></textarea>
+      <button class="send" onclick="sendMsg()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Files view -->
+  <div id="filesView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="files-head">
+      <h2>Files</h2>
+      <div style="display:flex;gap:6px;">
+        <button onclick="showNewFileInput('folder')" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--blue);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">+ Folder</button>
+        <button onclick="showNewFileInput('file')" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;">+ File</button>
+      </div>
+    </div>
+    <!-- Inline new file/folder input -->
+    <div id="newFileBar" style="display:none;padding:8px 20px;background:var(--bg2);border-bottom:1px solid var(--border);">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="newFileIcon" style="font-size:16px;">📄</span>
+        <input id="newFileName" type="text" placeholder="filename.md" style="flex:1;background:var(--bg4);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:14px;font-family:'JetBrains Mono',monospace;color:var(--t1);outline:none;">
+        <button onclick="confirmNewFile()" style="background:var(--accent);border:none;border-radius:8px;padding:8px 14px;color:white;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">Create</button>
+        <button onclick="hideNewFileInput()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--t3);font-size:13px;font-family:inherit;cursor:pointer;">✕</button>
+      </div>
+    </div>
+    <div class="files-list" id="filesList"></div>
+  </div>
+
+  <!-- Editor view -->
+  <div id="editorView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="editor-head">
+      <button onclick="showScreen('filesView')"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+      <h3 id="editorTitle">File</h3>
+      <button style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--red);font-size:12px;font-family:inherit;cursor:pointer;" onclick="deleteCurrentFile()">Delete</button>
+      <button class="save-btn" onclick="saveEditor()">Save</button>
+    </div>
+    <div class="editor-body">
+      <textarea id="editorContent"></textarea>
+    </div>
+  </div>
+
+  <!-- Settings view -->
+  <div id="settingsView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="files-head">
+      <h2>Settings</h2>
+    </div>
+    <div class="settings-list">
+      <div class="sgroup">
+        <div class="sgroup-title">API</div>
+        <div class="sitem">
+          <div class="sitem-l"><div class="si" style="background:var(--abg);">🔑</div><div><h4>API Key</h4><p id="keyPreview">sk-ant-***</p></div></div>
+          <button style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--red);font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;" onclick="clearKey()">Reset Key</button>
+        </div>
+        <div class="sitem">
+          <div class="sitem-l"><div class="si" style="background:rgba(80,140,255,0.08);">🤖</div><div><h4>Model</h4></div></div>
+          <select class="model-sel" id="modelSelect" onchange="saveSettings()">
+            <option value="claude-sonnet-4-20250514">Sonnet 4</option>
+            <option value="claude-opus-4-0-20250115">Opus 4</option>
+          </select>
+        </div>
+      </div>
+      <div class="sgroup">
+        <div class="sgroup-title">Learning</div>
+        <div class="sitem">
+          <div class="sitem-l"><div class="si" style="background:var(--abg);">🧠</div><div><h4>Learning Mode</h4><p>AI explains as it works</p></div></div>
+          <button class="toggle on" id="learnToggle" onclick="toggleLearn()"></button>
+        </div>
+      </div>
+      <div class="sgroup">
+        <div class="sgroup-title">Data</div>
+        <div class="sitem" onclick="exportAll()" style="cursor:pointer;">
+          <div class="sitem-l"><div class="si" style="background:rgba(80,140,255,0.08);">📤</div><div><h4>Export All Files</h4><p>Download as individual files</p></div></div>
+          <span class="sval">›</span>
+        </div>
+        <div class="sitem" onclick="importFile()" style="cursor:pointer;">
+          <div class="sitem-l"><div class="si" style="background:rgba(62,207,113,0.08);">📥</div><div><h4>Import File</h4><p>Add a file from your device</p></div></div>
+          <span class="sval">›</span>
+        </div>
+      </div>
+      <div style="text-align:center;padding:24px 0;opacity:0.3;font-size:11px;">
+        Anvil v0.2 PWA · Made in Gladstone, QLD<br>Not affiliated with Anthropic
+      </div>
+      <div style="text-align:center;padding:0 0 24px;">
+        <button style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 20px;color:var(--t2);font-size:12px;font-family:inherit;cursor:pointer;" onclick="showDebugLog()">🐛 View Debug Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="on" onclick="showScreen('chatView')" data-view="chatView"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><span>Chat</span></button>
+    <button onclick="showScreen('filesView')" data-view="filesView"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg><span>Files</span></button>
+    <button onclick="showScreen('settingsView')" data-view="settingsView"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg><span>Settings</span></button>
+  </div>
+</div>
+
+<input type="file" id="fileImport" style="display:none" onchange="handleImport(event)">
+<input type="file" id="imageAttach" accept="image/*" style="display:none" onchange="handleImageAttach(event)">
+<input type="file" id="fileAttach" style="display:none" onchange="handleFileAttach(event)">
+
+<script>
+// ============ STATE ============
+let apiKey = '';
+let model = 'claude-sonnet-4-20250514';
+let learningMode = true;
+let messages = [];
+let totalTokens = 0;
+let currentEditFile = '';
+let isStreaming = false;
+let root = null;
+let debugLog = [];
+let pendingAttachments = []; // {type:'image'|'file', name:string, data:string, mediaType:string}
+
+// ============ DEBUG LOGGING ============
+function log(msg) {
+  const ts = new Date().toLocaleTimeString();
+  const entry = `[${ts}] ${msg}`;
+  debugLog.push(entry);
+  console.log('[Anvil]', msg);
+  // Keep last 200 entries
+  if (debugLog.length > 200) debugLog.shift();
+  // Try to write to OPFS if available
+  if (root) {
+    writeFile('debug.log', debugLog.join('\n')).catch(() => {});
+  }
+}
+
+// ============ OPFS FILE SYSTEM ============
+async function initFS() {
+  try {
+    root = await navigator.storage.getDirectory();
+    log('OPFS root obtained');
+  } catch (e) {
+    log('OPFS FAILED: ' + e.message);
+    return;
+  }
+  // Create default structure if CLAUDE.md doesn't exist
+  try {
+    await root.getFileHandle('CLAUDE.md');
+    log('CLAUDE.md exists, skipping init');
+  } catch {
+    log('First run — creating default file structure');
+    await writeFile('CLAUDE.md', '# About Me\nName: \nWhat I do: \nWhat I\'m interested in: \nHow I like to learn: \n\n# Preferences\n- Be direct and practical\n- Explain the "why" behind things\n- Use Australian English\n');
+    await mkdir('context');
+    await writeFile('context/learned.md', '# Things I\'ve Learned\n\n_This file is updated automatically as you learn new concepts._\n');
+    await writeFile('context/preferences.md', '# Preferences\n\nTone: Direct, casual\nDetail level: Standard\n');
+    await writeFile('context/session_notes.md', '# Session Notes\n\n');
+    await mkdir('projects');
+    await mkdir('conversations');
+    log('Default file structure created');
+  }
+}
+
+async function mkdir(path) {
+  const parts = path.split('/');
+  let dir = root;
+  for (const p of parts) {
+    dir = await dir.getDirectoryHandle(p, { create: true });
+  }
+  return dir;
+}
+
+async function writeFile(path, content) {
+  const parts = path.split('/');
+  const fileName = parts.pop();
+  let dir = root;
+  for (const p of parts) {
+    dir = await dir.getDirectoryHandle(p, { create: true });
+  }
+  const fh = await dir.getFileHandle(fileName, { create: true });
+  const w = await fh.createWritable();
+  await w.write(content);
+  await w.close();
+}
+
+async function readFile(path) {
+  try {
+    const parts = path.split('/');
+    const fileName = parts.pop();
+    let dir = root;
+    for (const p of parts) {
+      dir = await dir.getDirectoryHandle(p);
+    }
+    const fh = await dir.getFileHandle(fileName);
+    const file = await fh.getFile();
+    return await file.text();
+  } catch { return null; }
+}
+
+async function listDir(path) {
+  let dir = root;
+  if (path) {
+    for (const p of path.split('/')) {
+      dir = await dir.getDirectoryHandle(p);
+    }
+  }
+  const items = [];
+  for await (const [name, handle] of dir) {
+    items.push({ name, kind: handle.kind });
+  }
+  return items.sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+async function deleteFile(path) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  let dir = root;
+  for (const p of parts) dir = await dir.getDirectoryHandle(p);
+  await dir.removeEntry(name, { recursive: true });
+}
+
+// ============ SETTINGS ============
+function saveSettings() {
+  model = document.getElementById('modelSelect').value;
+  localStorage.setItem('anvil_model', model);
+  localStorage.setItem('anvil_learn', learningMode);
+  log('Settings saved: model=' + model + ' learn=' + learningMode);
+}
+
+function loadSettings() {
+  log('Loading settings...');
+  apiKey = localStorage.getItem('anvil_key') || '';
+  model = localStorage.getItem('anvil_model') || 'claude-sonnet-4-20250514';
+  learningMode = localStorage.getItem('anvil_learn') !== 'false';
+  log('Key present: ' + (apiKey ? 'yes (' + apiKey.slice(0,12) + '...)' : 'no'));
+  log('Model: ' + model);
+  if (apiKey) {
+    document.getElementById('setup').classList.remove('active');
+    document.getElementById('app').classList.add('active');
+    document.getElementById('keyPreview').textContent = apiKey.slice(0, 12) + '***';
+    document.getElementById('modelSelect').value = model;
+    updateLearnUI();
+    initChat();
+  }
+}
+
+// ============ API KEY ============
+async function connectKey() {
+  const key = document.getElementById('keyInput').value.trim();
+  const status = document.getElementById('keyStatus');
+
+  if (!key) {
+    status.textContent = 'Please paste your API key';
+    status.className = 'setup-status err';
+    return;
+  }
+
+  log('Connect attempt. Key length: ' + key.length + ' starts: ' + key.slice(0, 12));
+  status.textContent = 'Testing connection...';
+  status.className = 'setup-status';
+
+  const reqBody = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 10,
+    messages: [{ role: 'user', content: 'hi' }]
+  };
+
+  log('Request body: ' + JSON.stringify(reqBody));
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(reqBody)
+    });
+
+    log('Response status: ' + r.status);
+    log('Response headers: ' + JSON.stringify(Object.fromEntries(r.headers.entries())));
+
+    const responseText = await r.text();
+    log('Response body (first 500): ' + responseText.slice(0, 500));
+
+    if (r.ok) {
+      log('SUCCESS — key validated');
+      status.textContent = '✓ Connected to Claude';
+      status.className = 'setup-status ok';
+      setTimeout(() => saveAndEnter(key), 500);
+    } else {
+      let errMsg = 'Error ' + r.status;
+      try {
+        const d = JSON.parse(responseText);
+        errMsg = d.error?.message || d.error?.type || errMsg;
+        log('Parsed error: ' + errMsg);
+      } catch (pe) {
+        log('Could not parse error JSON: ' + pe.message);
+      }
+      status.innerHTML = '<span style="color:var(--red)">' + errMsg + '</span>';
+      status.className = 'setup-status err';
+    }
+  } catch (e) {
+    log('FETCH EXCEPTION: ' + e.name + ': ' + e.message);
+    status.innerHTML = '<span style="color:var(--red)">Network error: ' + e.message + '</span>';
+    status.className = 'setup-status err';
+  }
+}
+
+function saveAndEnter(key) {
+  apiKey = key;
+  localStorage.setItem('anvil_key', key);
+  log('Key saved to localStorage');
+  document.getElementById('setup').classList.remove('active');
+  document.getElementById('app').classList.add('active');
+  document.getElementById('keyPreview').textContent = key.slice(0, 12) + '***';
+  initChat();
+}
+
+function skipConnect() {
+  const key = document.getElementById('keyInput').value.trim();
+  if (!key) {
+    document.getElementById('keyStatus').textContent = 'Paste your key first';
+    document.getElementById('keyStatus').className = 'setup-status err';
+    return;
+  }
+  log('Skipping validation, saving key directly');
+  saveAndEnter(key);
+}
+
+function clearKey() {
+  log('Clearing API key and all localStorage');
+  localStorage.removeItem('anvil_key');
+  localStorage.removeItem('anvil_model');
+  localStorage.removeItem('anvil_learn');
+  // Force back to setup
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('setup').classList.add('active');
+  document.getElementById('keyInput').value = '';
+  document.getElementById('keyStatus').textContent = '';
+  apiKey = '';
+  log('Reset complete');
+}
+
+// ============ CHAT ============
+async function initChat() {
+  log('initChat called');
+  await initFS();
+  messages = [];
+  const msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  addSysMsg('Context loaded from CLAUDE.md');
+  refreshFiles();
+  log('Chat initialised');
+}
+
+function addSysMsg(text) {
+  const d = document.createElement('div');
+  d.className = 'msg sys';
+  d.textContent = text;
+  document.getElementById('msgs').appendChild(d);
+}
+
+function addUserMsg(text) {
+  const d = document.createElement('div');
+  d.className = 'msg user';
+  d.textContent = text;
+  document.getElementById('msgs').appendChild(d);
+  scrollChat();
+}
+
+function addAIMsg() {
+  const d = document.createElement('div');
+  d.className = 'msg ai';
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-bubble';
+  d.appendChild(bubble);
+  document.getElementById('msgs').appendChild(d);
+  scrollChat();
+  return bubble;
+}
+
+function showTyping() {
+  const d = document.createElement('div');
+  d.className = 'typing-dots';
+  d.id = 'typingIndicator';
+  d.innerHTML = '<span></span><span></span><span></span>';
+  document.getElementById('msgs').appendChild(d);
+  scrollChat();
+}
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function scrollChat() {
+  const m = document.getElementById('msgs');
+  setTimeout(() => m.scrollTop = m.scrollHeight, 50);
+}
+
+async function buildSystemPrompt() {
+  let sys = 'You are Anvil, a personal AI assistant that builds things and teaches along the way. You create real files and write real code.\n\n';
+  const claude = await readFile('CLAUDE.md');
+  if (claude) sys += '## User Context (CLAUDE.md)\n' + claude + '\n\n';
+  const learned = await readFile('context/learned.md');
+  if (learned) sys += '## What the user has learned so far\n' + learned + '\n\n';
+  const prefs = await readFile('context/preferences.md');
+  if (prefs) sys += '## Preferences\n' + prefs + '\n\n';
+  if (learningMode) {
+    sys += `## LEARNING MODE IS ACTIVE
+As you work, teach the user about every concept, decision, and technique. Explain the "why" behind everything. Adapt depth to what they already know (see learned.md above). Never be condescending — be the smart friend who knows about everything and loves explaining things. Weave teaching into the work. When you teach something significant, note it with 💡 so the user can save it.\n\n`;
+  }
+  sys += 'Keep responses focused and practical. Use markdown formatting. When writing code, use fenced code blocks with language tags.\n';
+  log('System prompt built: ' + sys.length + ' chars');
+  return sys;
+}
+
+async function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if ((!text && pendingAttachments.length === 0) || isStreaming) return;
+  input.value = '';
+  input.style.height = '40px';
+
+  // Build user message content
+  let userContent = [];
+  let displayHtml = '';
+
+  // Add attachments to message
+  if (pendingAttachments.length > 0) {
+    for (const att of pendingAttachments) {
+      if (att.type === 'image') {
+        userContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: att.mediaType, data: att.data }
+        });
+        displayHtml += '<img class="msg-img" src="data:' + att.mediaType + ';base64,' + att.data + '">';
+      } else {
+        userContent.push({
+          type: 'text',
+          text: '[Attached file: ' + att.name + ']\n' + att.data
+        });
+        displayHtml += '<div style="font-size:12px;color:var(--accent);margin-bottom:4px;">📄 ' + att.name + '</div>';
+      }
+    }
+    pendingAttachments = [];
+    renderAttachPreview();
+  }
+
+  // Add text
+  if (text) {
+    userContent.push({ type: 'text', text: text });
+    displayHtml += text;
+  }
+
+  // Display user message
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg user';
+  userDiv.innerHTML = displayHtml;
+  document.getElementById('msgs').appendChild(userDiv);
+  scrollChat();
+
+  // Simple content if text only (no attachments)
+  const msgContent = userContent.length === 1 && userContent[0].type === 'text' ? text : userContent;
+  messages.push({ role: 'user', content: msgContent });
+
+  isStreaming = true;
+  showActivity('Connecting to Claude...');
+  showTyping();
+  log('Sending message: ' + (text || '[attachment]').slice(0, 80) + ' | Attachments: ' + (userContent.length - (text ? 1 : 0)));
+
+  try {
+    const sys = await buildSystemPrompt();
+    showActivity('Building context...');
+    const reqBody = {
+      model: model,
+      max_tokens: 4096,
+      system: sys,
+      stream: true,
+      messages: messages.slice(-20)
+    };
+    log('Chat request: model=' + model + ' msgs=' + messages.length);
+    showActivity('Waiting for Claude...');
+
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(reqBody)
+    });
+
+    log('Chat response status: ' + r.status);
+
+    if (!r.ok) {
+      const errText = await r.text();
+      log('Chat error body: ' + errText.slice(0, 500));
+      hideTyping();
+      hideActivity();
+      const bubble = addAIMsg();
+      let errMsg = 'API Error ' + r.status;
+      try { errMsg = JSON.parse(errText).error?.message || errMsg; } catch {}
+      bubble.innerHTML = '<span style="color:var(--red)">' + errMsg + '</span>';
+      isStreaming = false;
+      return;
+    }
+
+    hideTyping();
+    showActivity('Claude is responding...');
+    const bubble = addAIMsg();
+    let fullText = '';
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          try {
+            const j = JSON.parse(data);
+            if (j.type === 'content_block_delta' && j.delta?.text) {
+              fullText += j.delta.text;
+              bubble.innerHTML = renderMarkdown(fullText);
+              scrollChat();
+            }
+            if (j.type === 'message_delta' && j.usage) {
+              totalTokens += (j.usage.output_tokens || 0);
+            }
+            if (j.type === 'message_start' && j.message?.usage) {
+              totalTokens += (j.message.usage.input_tokens || 0);
+            }
+          } catch {}
+        }
+      }
+    }
+
+    log('Response complete: ' + fullText.length + ' chars');
+    showActivity('Saving context...');
+    messages.push({ role: 'assistant', content: fullText });
+    updateTokenLine();
+
+    // Post-turn: save conversation
+    const convData = JSON.stringify({ messages, timestamp: Date.now() });
+    await writeFile('conversations/current.json', convData);
+
+    // Check if AI mentioned saving to learned.md
+    if (fullText.includes('💡') && learningMode) {
+      const learnContent = await readFile('context/learned.md') || '';
+      const now = new Date().toLocaleDateString();
+      const insights = fullText.split('\n').filter(l => l.includes('💡')).map(l => l.replace(/\*\*/g, '').trim()).join('\n');
+      if (insights) {
+        await writeFile('context/learned.md', learnContent + '\n## ' + now + '\n' + insights + '\n');
+        log('Saved insights to learned.md');
+      }
+    }
+
+    // Update session notes
+    const notes = await readFile('context/session_notes.md') || '';
+    const summary = fullText.slice(0, 100).replace(/[#*`]/g, '') + '...';
+    await writeFile('context/session_notes.md', notes + '\n- ' + new Date().toLocaleTimeString() + ': ' + summary);
+    hideActivity();
+
+  } catch (e) {
+    log('CHAT EXCEPTION: ' + e.name + ': ' + e.message + '\n' + e.stack);
+    hideTyping();
+    hideActivity();
+    const bubble = addAIMsg();
+    bubble.innerHTML = '<span style="color:var(--red)">Error: ' + e.message + '</span>';
+  }
+  isStreaming = false;
+}
+
+function updateTokenLine() {
+  const cost = (totalTokens / 1000000 * 15).toFixed(4);
+  document.getElementById('tokenLine').textContent = totalTokens.toLocaleString() + ' tokens · ~$' + cost;
+}
+
+// ============ MARKDOWN RENDERING ============
+function renderMarkdown(text) {
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => '<pre>' + code.trim() + '</pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<strong style="color:var(--accent);font-size:13px;">$1</strong>')
+    .replace(/^## (.+)$/gm, '<strong style="font-size:15px;">$1</strong>')
+    .replace(/💡(.+?)(?=\n|$)/g, '<span style="color:var(--accent);">💡$1</span>')
+    .replace(/\n/g, '<br>');
+  return html;
+}
+
+// ============ ACTIVITY INDICATOR ============
+function showActivity(text) {
+  const bar = document.getElementById('activityBar');
+  document.getElementById('activityText').textContent = text;
+  bar.style.display = 'flex';
+}
+function hideActivity() {
+  document.getElementById('activityBar').style.display = 'none';
+}
+
+// ============ ATTACHMENTS ============
+function handleImageAttach(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  log('Image attached: ' + file.name + ' (' + file.type + ', ' + Math.round(file.size/1024) + 'KB)');
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = reader.result.split(',')[1];
+    pendingAttachments.push({
+      type: 'image',
+      name: file.name,
+      data: base64,
+      mediaType: file.type || 'image/jpeg'
+    });
+    renderAttachPreview();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function handleFileAttach(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  log('File attached: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB)');
+  // Check if it's an image
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingAttachments.push({
+        type: 'image',
+        name: file.name,
+        data: reader.result.split(',')[1],
+        mediaType: file.type
+      });
+      renderAttachPreview();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // Read as text
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingAttachments.push({
+        type: 'file',
+        name: file.name,
+        data: reader.result,
+        mediaType: 'text/plain'
+      });
+      renderAttachPreview();
+    };
+    reader.readAsText(file);
+  }
+  e.target.value = '';
+}
+
+function renderAttachPreview() {
+  const preview = document.getElementById('attachPreview');
+  if (pendingAttachments.length === 0) {
+    preview.style.display = 'none';
+    return;
+  }
+  preview.style.display = 'flex';
+  preview.innerHTML = '';
+  pendingAttachments.forEach((att, i) => {
+    if (att.type === 'image') {
+      const thumb = document.createElement('div');
+      thumb.className = 'attach-thumb';
+      thumb.innerHTML = '<img src="data:' + att.mediaType + ';base64,' + att.data + '"><button class="remove" onclick="removeAttachment(' + i + ')">✕</button>';
+      preview.appendChild(thumb);
+    } else {
+      const chip = document.createElement('div');
+      chip.className = 'attach-file';
+      chip.innerHTML = '📄 ' + att.name + '<span class="remove" onclick="removeAttachment(' + i + ')">✕</span>';
+      preview.appendChild(chip);
+    }
+  });
+}
+
+function removeAttachment(i) {
+  pendingAttachments.splice(i, 1);
+  renderAttachPreview();
+}
+
+// ============ VOICE INPUT ============
+let recognition = null;
+let isRecording = false;
+
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Voice input not supported in this browser.');
+    return;
+  }
+  if (isRecording) { recognition.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-AU';
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('micBtn');
+  recognition.onstart = () => { isRecording = true; btn.classList.add('recording'); };
+  recognition.onend = () => { isRecording = false; btn.classList.remove('recording'); };
+  recognition.onresult = (e) => {
+    let text = '';
+    for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+    input.value = text;
+    autoGrow(input);
+  };
+  recognition.onerror = (e) => { log('Voice error: ' + e.error); isRecording = false; btn.classList.remove('recording'); };
+  recognition.start();
+}
+
+// ============ FILES UI ============
+async function refreshFiles(path) {
+  const list = document.getElementById('filesList');
+  list.innerHTML = '';
+  currentBrowsePath = path || '';
+
+  if (currentBrowsePath) {
+    const back = document.createElement('div');
+    back.className = 'fitem';
+    back.innerHTML = '<div class="fi" style="background:var(--bg4);">←</div><span class="fn">Back</span>';
+    const parentPath = currentBrowsePath.split('/').slice(0, -1).join('/');
+    back.onclick = () => refreshFiles(parentPath || undefined);
+    list.appendChild(back);
+  }
+
+  try {
+    const items = await listDir(currentBrowsePath || undefined);
+    for (const item of items) {
+      const fullPath = currentBrowsePath ? currentBrowsePath + '/' + item.name : item.name;
+      const el = document.createElement('div');
+      el.className = 'fitem';
+      const isDir = item.kind === 'directory';
+      const isClaude = item.name === 'CLAUDE.md';
+      const isDebug = item.name === 'debug.log';
+      const icon = isClaude ? '🧠' : isDebug ? '🐛' : isDir ? '📁' : item.name.endsWith('.md') ? '📄' : item.name.endsWith('.json') ? '📋' : '📄';
+      const bg = isClaude ? 'var(--abg)' : isDebug ? 'rgba(232,84,84,0.08)' : isDir ? 'rgba(80,140,255,0.08)' : 'var(--bg4)';
+      el.innerHTML = '<div class="fi" style="background:' + bg + ';">' + icon + '</div><span class="fn' + (isClaude ? ' accent' : '') + '">' + item.name + (isDir ? '/' : '') + '</span>';
+
+      if (isDir) {
+        el.onclick = () => refreshFiles(fullPath);
+      } else {
+        el.onclick = () => openEditor(fullPath);
+      }
+      list.appendChild(el);
+    }
+  } catch (e) {
+    list.innerHTML = '<div style="padding:20px;color:var(--t3);text-align:center;">Error: ' + e.message + '</div>';
+  }
+}
+
+async function openEditor(path) {
+  currentEditFile = path;
+  const content = await readFile(path);
+  document.getElementById('editorTitle').textContent = path.split('/').pop();
+  document.getElementById('editorContent').value = content || '';
+  showScreen('editorView');
+}
+
+async function saveEditor() {
+  await writeFile(currentEditFile, document.getElementById('editorContent').value);
+  log('Saved: ' + currentEditFile);
+  document.getElementById('editorTitle').textContent += ' ✓';
+  setTimeout(() => showScreen('filesView'), 400);
+  refreshFiles(currentBrowsePath || undefined);
+}
+
+async function deleteCurrentFile() {
+  const name = currentEditFile.split('/').pop();
+  if (confirm('Delete ' + name + '?')) {
+    try {
+      await deleteFile(currentEditFile);
+      log('Deleted: ' + currentEditFile);
+      showScreen('filesView');
+      refreshFiles(currentBrowsePath || undefined);
+    } catch (e) {
+      log('Delete failed: ' + e.message);
+      alert('Could not delete: ' + e.message);
+    }
+  }
+}
+
+let newFileType = 'file';
+let currentBrowsePath = '';
+
+async function createNewFile() {
+  showNewFileInput('file');
+}
+
+function showNewFileInput(type) {
+  newFileType = type;
+  const bar = document.getElementById('newFileBar');
+  const input = document.getElementById('newFileName');
+  const icon = document.getElementById('newFileIcon');
+  bar.style.display = 'block';
+  icon.textContent = type === 'folder' ? '📁' : '📄';
+  input.placeholder = type === 'folder' ? 'folder-name' : 'filename.md';
+  input.value = '';
+  setTimeout(() => input.focus(), 100);
+  // Handle enter key
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmNewFile(); }
+    if (e.key === 'Escape') { hideNewFileInput(); }
+  };
+}
+
+function hideNewFileInput() {
+  document.getElementById('newFileBar').style.display = 'none';
+}
+
+async function confirmNewFile() {
+  const name = document.getElementById('newFileName').value.trim();
+  if (!name) return;
+  const fullPath = currentBrowsePath ? currentBrowsePath + '/' + name : name;
+  log('Creating ' + newFileType + ': ' + fullPath);
+  try {
+    if (newFileType === 'folder') {
+      await mkdir(fullPath);
+      log('Folder created: ' + fullPath);
+    } else {
+      await writeFile(fullPath, '');
+      log('File created: ' + fullPath);
+    }
+    hideNewFileInput();
+    await refreshFiles(currentBrowsePath || undefined);
+    if (newFileType === 'file') {
+      openEditor(fullPath);
+    }
+  } catch (e) {
+    log('Create failed: ' + e.message);
+    document.getElementById('newFileName').style.borderColor = 'var(--red)';
+  }
+}
+
+// ============ IMPORT / EXPORT ============
+function importFile() {
+  document.getElementById('fileImport').click();
+}
+
+async function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  await writeFile(file.name, text);
+  refreshFiles();
+  alert('Imported: ' + file.name);
+  e.target.value = '';
+}
+
+async function exportAll() {
+  async function exportDir(dir, path) {
+    for await (const [name, handle] of dir) {
+      const fullPath = path ? path + '/' + name : name;
+      if (handle.kind === 'file') {
+        const file = await handle.getFile();
+        const text = await file.text();
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; a.click();
+        URL.revokeObjectURL(url);
+        await new Promise(r => setTimeout(r, 300));
+      } else {
+        await exportDir(handle, fullPath);
+      }
+    }
+  }
+  await exportDir(root, '');
+  alert('All files exported to Downloads.');
+}
+
+// ============ NAVIGATION ============
+function showScreen(viewId) {
+  ['chatView', 'filesView', 'editorView', 'settingsView'].forEach(v => {
+    document.getElementById(v).style.display = 'none';
+  });
+  document.getElementById(viewId).style.display = 'flex';
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('on'));
+  const navBtn = document.querySelector('.nav button[data-view="' + viewId + '"]');
+  if (navBtn) navBtn.classList.add('on');
+  if (viewId === 'filesView') refreshFiles();
+}
+
+function newChat() {
+  if (messages.length && confirm('Start a new conversation?')) {
+    messages = [];
+    document.getElementById('msgs').innerHTML = '';
+    addSysMsg('New conversation · Context loaded from CLAUDE.md');
+  }
+}
+
+// ============ LEARNING MODE ============
+function toggleLearn() {
+  learningMode = !learningMode;
+  updateLearnUI();
+  saveSettings();
+}
+
+function updateLearnUI() {
+  const toggle = document.getElementById('learnToggle');
+  const badge = document.getElementById('learnBadge');
+  if (learningMode) {
+    toggle.classList.add('on');
+    badge.style.display = '';
+  } else {
+    toggle.classList.remove('on');
+    badge.style.display = 'none';
+  }
+}
+
+// ============ UTILS ============
+function autoGrow(el) {
+  el.style.height = '40px';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function chatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+// ============ SHOW DEBUG LOG ============
+async function showDebugLog() {
+  // Write current log to OPFS first
+  if (root) {
+    await writeFile('debug.log', debugLog.join('\n'));
+  }
+  // Open in editor
+  currentEditFile = 'debug.log';
+  document.getElementById('editorTitle').textContent = 'debug.log';
+  document.getElementById('editorContent').value = debugLog.join('\n');
+  showScreen('editorView');
+}
+
+// ============ INIT ============
+log('Anvil starting...');
+log('UserAgent: ' + navigator.userAgent.slice(0, 100));
+log('OPFS available: ' + ('getDirectory' in (navigator.storage || {})));
+loadSettings();
+</script>
+</body>
+</html>
